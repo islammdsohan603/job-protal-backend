@@ -40,6 +40,22 @@ const run = async () => {
       const result = await jobs.findOne(query);
       res.send(result);
     });
+    // company json data
+
+    app.get("/company", async (req, res) => {
+      const result = await jobs
+        .find(
+          {},
+          {
+            projection: {
+              name: 1,
+              logo: 1,
+            },
+          },
+        )
+        .toArray();
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
