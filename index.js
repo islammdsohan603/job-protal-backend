@@ -67,6 +67,12 @@ const run = async () => {
       res.send(result);
     });
 
+    app.get("/job-seeker-data", async (req, res) => {
+      const data = jobSeekers.find();
+      const result = await data.toArray();
+      res.send(result);
+    });
+
     // company json data
 
     app.get("/company", async (req, res) => {
