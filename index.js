@@ -5,7 +5,6 @@ const app = express();
 
 const cors = require("cors");
 const dotenv = require("dotenv");
-const Stripe = require("stripe");
 
 dotenv.config();
 
@@ -27,8 +26,6 @@ const clientUrl = (process.env.CLIENT_URL || "http://localhost:3000").replace(
   /\/$/,
   "",
 );
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim().replace(/;$/, "");
-const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 const uri = process.env.MONGO_DB_URI;
 
@@ -122,68 +119,6 @@ const normalizePrice = (value) => {
 
   return Number(value.replace(/[$,\s]/g, ""));
 };
-
-app.post("/checkout", async (req, res) => {
-  try {
-    const { product } = req.body || {};
-
-    if (!product || typeof product !== "object") {
-      return res.status(400).json({ error: "Product data is required." });
-    }
-
-    const name = typeof product.name === "string" ? product.name.trim() : "";
-    const price = normalizePrice(product.price);
-    const unitAmount = Math.round(price * 100);
-
-    if (!name) {
-      return res.status(400).json({ error: "Product name is required." });
-    }
-
-    if (!Number.isFinite(price) || unitAmount <= 0) {
-      return res.status(400).json({
-        error: "Product price must be a valid number greater than 0.",
-      });
-    }
-
-    if (!stripe) {
-      return res.status(500).json({
-        error:
-          "Stripe is not configured. Add a rotated STRIPE_SECRET_KEY to the backend .env file.",
-      });
-    }
-
-    const productData = { name };
-
-    if (isValidHttpUrl(product.image)) {
-      productData.images = [product.image.trim()];
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: productData,
-            unit_amount: unitAmount,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${clientUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${clientUrl}/cancel`,
-    });
-
-    return res.json({ url: session.url });
-  } catch (error) {
-    console.error("Stripe checkout error:", error);
-
-    return res.status(500).json({
-      error: error.message || "Unable to create checkout session.",
-    });
-  }
-});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
