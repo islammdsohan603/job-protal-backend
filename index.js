@@ -1,12 +1,11 @@
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-
-const express = require("express");
-const app = express();
-
-const cors = require("cors");
-const dotenv = require("dotenv");
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
 dotenv.config();
+
+const app = express();
 
 app.use(
   cors({
@@ -71,7 +70,6 @@ const run = async () => {
     });
 
     // company json data
-
     app.get("/company", async (req, res) => {
       const result = await jobs
         .find(
