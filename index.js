@@ -7,15 +7,18 @@ dotenv.config();
 
 const app = express();
 
+
+
+
 app.use(
   cors({
     origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
       "http://localhost:3000",
       "http://127.0.0.1:3000",
+      "https://jobswebsite-sooty.vercel.app",
     ],
     credentials: true,
-  }),
+  })
 );
 
 app.use(express.json());
@@ -45,59 +48,95 @@ const run = async () => {
     const jobSeekers = db.collection("jobSeekers");
 
     app.get("/jobs", async (req, res) => {
-      const data = jobs.find();
-      const result = await data.toArray();
-      res.send(result);
+      try {
+        const data = jobs.find();
+        const result = await data.toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+        res.status(500).send({ error: "Failed to fetch jobs" });
+      }
     });
 
     app.get("/jobs/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await jobs.findOne(query);
-      res.send(result);
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await jobs.findOne(query);
+        if (!result) {
+          return res.status(404).send({ error: "Job not found" });
+        }
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching job:", error);
+        res.status(500).send({ error: "Failed to fetch job" });
+      }
     });
 
     app.post("/job-seeker", async (req, res) => {
-      const jobSeekerData = req.body;
-      const result = await jobSeekers.insertOne(jobSeekerData);
-      res.send(result);
+      try {
+        const jobSeekerData = req.body;
+        const result = await jobSeekers.insertOne(jobSeekerData);
+        res.send(result);
+      } catch (error) {
+        console.error("Error creating job seeker:", error);
+        res.status(500).send({ error: "Failed to create job seeker" });
+      }
     });
 
     app.get("/job-seeker-data", async (req, res) => {
-      const data = jobSeekers.find();
-      const result = await data.toArray();
-      res.send(result);
+      try {
+        const data = jobSeekers.find();
+        const result = await data.toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching job seekers:", error);
+        res.status(500).send({ error: "Failed to fetch job seekers" });
+      }
     });
 
     // company json data
     app.get("/company", async (req, res) => {
-      const result = await jobs
-        .find(
-          {},
-          {
-            projection: {
-              name: 1,
-              logo: 1,
+      try {
+        const result = await jobs
+          .find(
+            {},
+            {
+              projection: {
+                name: 1,
+                logo: 1,
+              },
             },
-          },
-        )
-        .toArray();
-      res.send(result);
+          )
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+        res.status(500).send({ error: "Failed to fetch companies" });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
+      "✅ Successfully connected to MongoDB!",
     );
   } catch (error) {
-    console.log(`Error now ${error}`);
+    console.error(`❌ Database connection error: ${error}`);
+    process.exit(1);
   }
 };
 
-run();
+// Initialize database connection before starting server
+await run();
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("✅ Backend is running!");
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send({ error: "Internal server error" });
 });
 
 const isValidHttpUrl = (value) => {
@@ -119,5 +158,7 @@ const normalizePrice = (value) => {
 };
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`🚀 Server listening on port ${port}`);
 });
+
+export default app;
